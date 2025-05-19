@@ -42,6 +42,7 @@ class KNN:
             predicted_test_labels[i] = self.get_label(x)
         return predicted_test_labels
 
+# 使用欧式距离来定义样本间距离
 def distance(a, b):
     return np.sqrt(np.sum(np.square(a - b)))
 
