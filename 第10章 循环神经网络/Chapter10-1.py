@@ -39,11 +39,69 @@ plt.scatter(np.arange(split, num_data), data[split:], color='none',
 plt.xlabel('X axis')
 plt.ylabel('Y axis')
 plt.legend()
+plt.savefig('./第10章 循环神经网络/training_test_split.png')
 plt.show()
+
 # 分割数据集
 train_data = np.array(data[:split])
 test_data = np.array(data[split:])
 
 # <------------------------------------------------------------------------------>
 # 在训练RNN模型时，虽然我们可以一把每个时间步数t单独输入，得到模型的预测值，但这样无法体现数据的序列相关性质
-# 因此，通常会把一段时间序列整体作为输入，Pytorch中的GRU模块输出这段序列对应的
+# 因此，通常会把一段时间序列整体作为输入，Pytorch中的GRU模块输出这段序列对应的中间变量。
+# 如果要得到最后的输出，还需要将中间变量经过自定义的其他网络，这一点和CNN中卷积层负责提取特征、MLP负责根据特征
+# 完成特定任务的做法非常相似。因此，在GRU之后拼接一个全连接层，通过中间变量序列来预测
+
+# 输入序列长度
+seq_len = 20
+# 处理训练数据，把切分序列后多余的部分去掉
+train_num = len(train_data) // (seq_len + 1) * (seq_len + 1)
+train_data = np.array(train_data[:train_num]).reshape(-1, seq_len + 1, 1)
+# print(train_data.shape)
+np.random.seed(0)
+torch.manual_seed(0)
+
+x_train = train_data[:, :seq_len] # 形状为(num_data, seq_len, input_size)
+y_train = train_data[:, 1: seq_len + 1]
+print(f'训练序列数：{len(x_train)}')
+
+# 转为PyTorch张量
+x_train = torch.from_numpy(x_train).to(torch.float32)
+y_train = torch.from_numpy(y_train).to(torch.float32)
+x_test = torch.from_numpy(test_data[:-1]).to(torch.float32)
+y_test = torch.from_numpy(test_data[1:]).to(torch.float32)
+
+# 考虑到GRU的模型结构较为复杂，我们直接使用pytorch库中封装好的GRU模型
+# 我们只 要为该模型提供两个参数，第一个参数input_size 表示输入 的维度 第二 参数hidden_size表示 中间变量 的维度，其余参数我们保持缺省值。
+
+# 在前向传播时，GRU接收序列x和初始中间变量h。如果最开始我们不知道中间变量的值， RU 会自动将其初始
+# 化为全零。 前向传播的输出 out 和 hidden，前者是 整个时间序列上中间变量的值 而后者
+# 只包含最后一步 out[-1] 和hidden在GRU 内部的层数不同时会 有区别，但本节只使用
+# 单层网络 因此不详细展开。感兴趣的读者可以参考 oyTorch 的官 文档 我们将 out作为最
+# 后全连接层的输入， 得到预测值 再把预测值和 hidden 返回， hidden 将作为下 次前向传
+# 播的初始中间变量。
+
+class GRU(nn.Module):
+    # 包含PyTorch的GRU和拼接的MLP
+    def __init__(self, input_size, output_size, hidden_size):
+        super().__init__()
+        # GRU模块
+        self.gru = nn.GRU(input_size=input_size, hidden_size=hidden_size) 
+        # 将中间变量映射到预测输出的MLP
+        self.linear = nn.Linear(hidden_size, output_size)
+        
+    def forward(self, x, hidden):
+        # 前向传播
+        # x的维度为(batch_size, seq_len, input_size)
+        # GRU模块接受的输入为(seq_len, batch_size, input_size)
+        # 因此需要对x进行变换
+        # transpose函数可以交换x的坐标轴
+        # out的维度是(seq_len, batch_size, hidden_size)
+        out, hidden = self.gru(torch.transpose(x, 0, 1), hidden) 
+        # 取序列最后的中间变量输入给全连接层
+        out = self.linear(out.view(-1, hidden_size))
+        return out, hidden
+    
+# 接下来，设置超参数并实例化GRU。在训练之前，我们还要强调时序模型在测试时与普通模型的区别。
+# GRU在测试时，我们将输入的时间序列长度降为1，即只输入Xt,让GRU预测t+1时刻的值。
+# 之后，不像普通的任务那样把所有测试数据都给模型
