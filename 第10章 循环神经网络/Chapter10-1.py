@@ -78,7 +78,7 @@ y_test = torch.from_numpy(test_data[1:]).to(torch.float32)
 # 化为全零。 前向传播的输出 out 和 hidden，前者是 整个时间序列上中间变量的值 而后者
 # 只包含最后一步 out[-1] 和hidden在GRU 内部的层数不同时会 有区别，但本节只使用
 # 单层网络 因此不详细展开。感兴趣的读者可以参考 oyTorch 的官 文档 我们将 out作为最
-# 后全连接层的输入， 得到预测值 再把预测值和 hidden 返回， hidden 将作为下 次前向传
+# 后全连接层的输入， 得到预测值 再把预测值和 hidden 返回， hidden 将作为下次前向传
 # 播的初始中间变量。
 
 class GRU(nn.Module):
@@ -105,3 +105,15 @@ class GRU(nn.Module):
 # 接下来，设置超参数并实例化GRU。在训练之前，我们还要强调时序模型在测试时与普通模型的区别。
 # GRU在测试时，我们将输入的时间序列长度降为1，即只输入Xt,让GRU预测t+1时刻的值。
 # 之后，不像普通的任务那样把所有测试数据都给模型
+# 而是让GRU将自己预测的Xt+1作为输入，再预测t+2时刻的值，循环往复
+# 这样的测试方式对模型在时序上的建模能力有相当高的要求， 否则就会很快因为预测值的误差累积，与真实值偏差很大。
+
+# 超参数
+input_size = 1 # 输入维度
+output_size = 1 # 输出维度
+hidden_size = 16 # 中间变量维度
+learning_rate = 5e-4
+
+# 初始化网络
+gru = GRU(input_size, output_size, hidden_size)
+gru_optim = torch.optim.Adam(gru.parameters(), lr=learning_rate)
