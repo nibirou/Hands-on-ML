@@ -117,3 +117,13 @@ learning_rate = 5e-4
 # 初始化网络
 gru = GRU(input_size, output_size, hidden_size)
 gru_optim = torch.optim.Adam(gru.parameters(), lr=learning_rate)
+
+# GRU测试函数，x和hidden分别是初始的输入和中间变量
+def test_gru(gru, x, hidden, pred_steps):
+    pred = []
+    inp = x.view(-1, input_size)
+    for i in range(pred_steps):
+        gru_pred, hidden = gru(inp, hidden)
+        pred.append(gru_pred.detach())
+        inp = gru_pred
+    return torch.concat(pred).reshape(-1)
