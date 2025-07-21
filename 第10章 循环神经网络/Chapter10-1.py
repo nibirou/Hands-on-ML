@@ -127,3 +127,41 @@ def test_gru(gru, x, hidden, pred_steps):
         pred.append(gru_pred.detach())
         inp = gru_pred
     return torch.concat(pred).reshape(-1)
+
+# <------------------------------------------------------------------------------>
+# 作为对比，使用相同的数据同步训练一个3层的MLP模型。该MLP模型同样将t到t+k时刻的xt,...,xt+k的数据拼接在一起作为输入
+# 此时k被理解为输入的批量大小，并输出xt+1,...,xt+k+1的预测值，与GRU保持一致。
+
+# MLP的超参数
+hidden_1 = 32
+hidden_2 = 16
+mlp = nn.Sequential(
+    nn.Linear(input_size, hidden_1),
+    nn.ReLU(),
+    nn.Linear(hidden_1, hidden_2),
+    nn.ReLU(),
+    nn.Linear(hidden_2, output_size)
+)
+mlp_optim = torch.optim.Adam(mlp.parameters(), lr=learning_rate)
+
+# MLP测试函数，相比于GRU少了中间变量
+def test_mlp(mlp, x, pred_steps):
+    pred = []
+    inp = x.view(-1, input_size)
+    for i in range(pred_steps):
+        mlp_pred = mlp(inp)
+        pred.append(mlp_pred.detach())
+        inp = mlp_pred
+    return torch.concat(pred).reshape(-1)
+
+# 使用完全相同的数据训练GRU和MLP。由于已经有了序列长度，不再设置SGD的批量大小，直接将每个训练样本单独输入模型进行优化
+max_epoch = 150
+criterion = nn.functional.mse_loss
+hidden = None # GRU的中间变量
+
+# 训练损失
+gru_losses = []
+mlp_losses = []
+gru_test_losses = []
+mlp_test_losses = []
+# 开始训练
