@@ -164,4 +164,27 @@ gru_losses = []
 mlp_losses = []
 gru_test_losses = []
 mlp_test_losses = []
+
 # 开始训练
+with tqdm(range(max_epoch)) as pbar:
+    for epoch in pbar:
+        st = 0
+        gru_loss = 0.0
+        mlp_loss = 0.0
+        # 随机梯度下降
+        for X, y in zip(x_train, y_train):
+            # 更新GRU模型
+            # 我们不需要通过梯度回传更新中间变量
+            # 因此将其从有梯度的部分分离出来
+            if hidden is not None:
+                hidden.detach_()
+            gru_pred, hidden = gru(X[None, ...], hidden)
+            gru_train_loss = criterion(gru_pred.view(y.shape), y)
+            gru_optim.zero_grad()
+            gru_train_loss.backward()
+            gru_optim.step()
+            gru_loss += gru_train_loss.item()
+            # 更新MLP模型
+            # 需要对输入的维度进行调整，变成(seq_len, input_size)的形式
+            mlp_pred = mlp(X.view(-1, input_size))
+            
