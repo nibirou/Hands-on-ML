@@ -187,4 +187,78 @@ with tqdm(range(max_epoch)) as pbar:
             # 更新MLP模型
             # 需要对输入的维度进行调整，变成(seq_len, input_size)的形式
             mlp_pred = mlp(X.view(-1, input_size))
-            
+            mlp_train_loss = criterion(mlp_pred.view(y.shape), y)
+            mlp_optim.zero_grad()
+            mlp_train_loss.backward()
+            mlp_optim.step()
+            mlp_loss += mlp_train_loss.item()
+
+        gru_loss /= len(x_train)
+        mlp_loss /= len(x_train)
+        gru_losses.append(gru_loss)
+        mlp_losses.append(mlp_loss)
+  
+        # 训练和测试时的中间变量序列长度不同，训练时为seq_len，测试时为1
+        gru_pred = test_gru(gru, x_test[0], hidden[:, -1], len(y_test))
+        mlp_pred = test_mlp(mlp, x_test[0], len(y_test))
+        gru_test_loss = criterion(gru_pred, y_test).item()
+        mlp_test_loss = criterion(mlp_pred, y_test).item()
+        gru_test_losses.append(gru_test_loss)
+        mlp_test_losses.append(mlp_test_loss)
+        
+        pbar.set_postfix({
+            'Epoch': epoch,
+            'GRU loss': f'{gru_loss:.4f}',
+            'MLP loss': f'{mlp_loss:.4f}',
+            'GRU test loss': f'{gru_test_loss:.4f}',
+            'MLP test loss': f'{mlp_test_loss:.4f}'
+        })
+
+# 最终测试结果
+gru_preds = test_gru(gru, x_test[0], hidden[:, -1], len(y_test)).numpy()
+mlp_preds = test_mlp(mlp, x_test[0], len(y_test)).numpy()
+
+# 最后，在测试集上对比GRU和MLP模型的效果并绘制出来
+
+plt.figure(figsize=(13, 5))
+# 绘制训练曲线
+plt.subplot(121)
+x_plot = np.arange(len(gru_losses)) + 1
+plt.plot(x_plot, gru_losses, color='blue', 
+    label='GRU training loss')
+plt.plot(x_plot, mlp_losses, color='red', 
+    ls='-.', label='MLP training loss')
+plt.plot(x_plot, gru_test_losses, color='blue', 
+    ls='--', label='GRU test loss')
+plt.plot(x_plot, mlp_test_losses, color='red', 
+    ls=':', label='MLP test loss')
+plt.xlabel('Training step')
+plt.ylabel('Loss')
+plt.legend(loc='lower left')
+
+# 绘制真实数据与模型预测值的图像
+plt.subplot(122)
+plt.scatter(np.arange(split), data[:split], color='blue', 
+    s=10, label='training set')
+plt.scatter(np.arange(split, num_data), data[split:], color='none', 
+    edgecolor='orange', s=10, label='test set')
+plt.scatter(np.arange(split, num_data - 1), mlp_preds, color='violet', 
+    marker='x', alpha=0.4, s=20, label='MLP preds')
+plt.scatter(np.arange(split, num_data - 1), gru_preds, color='green', 
+    marker='*', alpha=0.4, s=20, label='GRU preds')
+plt.legend(loc='lower left')
+plt.savefig('trainAndtestOfGRU_MLP.png')
+# plt.savefig('output_20_0.pdf')
+plt.show()
+
+# 本章主要介绍循环神经网络及其变体---门控循环单元，并在简单的数据集上实现了GRU模型。与其他的神经网络结构相比，
+# RNN充分利用了数据中的序列特性，将中间变量按时间不断向后传播，从而具有捕捉序列型关联的能力。
+
+# 然而在实际应用中，由于RNN的结构导致其梯度回传的表达式中出现参数的连乘，比较容易出现梯度消失和梯度爆炸等问题。
+
+# 许多RNN改进算法通过设计中间变量传播中的函数fh的结构解决了这一问题，
+# 其中长短期记忆网络LSTM是最著名的改进之一。
+
+# 之后，许多研究者以LSTM为基础进行了简化和进一步改进，本章介绍的GRU网络就是由LSTM简化而来的。
+# 在现代深度学习中,RNN凭借其直观的思想和强大的序列数据建模能力，始终占有一席之地。
+# 如今的深度学习大模型在RNN的基础上又做了许多改进，与本章中介绍的最普通的RNN模型已经有很大差别，但用传递中间层来使信息在不同位置之间流动的基本思想依然被保留下来。
