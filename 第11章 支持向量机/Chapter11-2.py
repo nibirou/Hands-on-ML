@@ -53,3 +53,91 @@ def sigmoid_kernel(beta, c):
         return np.tanh(beta * np.inner(x, y) + c)
     return k
 
+def SMO(x, y, ker, C, max_iter):
+    '''
+    SMO算法
+    x，y：样本的值和类别
+    ker：核函数，与线性回归中核函数的含义相同
+    C：惩罚系数
+    max_iter：最大迭代次数
+    '''
+    # 初始化参数
+    m = x.shape[0]
+    alpha = np.zeros(m)
+        
+    # 预先计算所有向量的两两内积，减少重复计算
+    K = np.zeros((m, m))
+    for i in range(m):
+        for j in range(m):
+            K[i, j] = ker(x[i], x[j])
+    
+    for l in trange(max_iter):
+        # 开始迭代
+        for i in range(m):
+            # 有m个参数，每一轮迭代中依次更新
+            # 固定参数alpha_i与另一个随机参数alpha_j，并且保证i与j不相等
+            j = np.random.choice([l for l in range(m) if l != i])
+            
+            # 用-b/2a更新alpha_i的值
+            eta = K[j, j] + K[i, i] - 2 * K[i, j] # 分母
+            e_i = np.sum(y * alpha * K[:, i]) - y[i] # 分子
+            e_j = np.sum(y * alpha * K[:, j]) - y[j]
+            alpha_i = alpha[i] + y[i] * (e_j - e_i) / (eta + 1e-5) # 防止除以0
+            zeta = alpha[i] * y[i] + alpha[j] * y[j]
+
+            # 将alpha_i和对应的alpha_j保持在[0,C]区间
+            # 0 <= (zeta - y_j * alpha_j) / y_i <= C
+            if y[i] == y[j]:
+                lower = max(0, zeta / y[i] - C)
+                upper = min(C, zeta / y[i])
+            else:
+                lower = max(0, zeta / y[i])
+                upper = min(C, zeta / y[i] + C)
+            alpha_i = np.clip(alpha_i, lower, upper)
+            alpha_j = (zeta - y[i] * alpha_i) / y[j]
+            
+            # 更新参数
+            alpha[i], alpha[j] = alpha_i, alpha_j
+
+    return alpha
+
+# 然后，依次用这4种核心函数计算SVM在双螺旋数据集上的分类结果。
+kernels = [
+    simple_poly_kernel(3), 
+    rbf_kernel(0.1), 
+    cos_kernel, 
+    sigmoid_kernel(1, -1)
+]
+
+ker_names = ['Poly(3)', 'RBF(0.1)', 'Cos', 'Sigmoid(1,-1)']
+C = 1e8
+max_iter = 500
+
+# 绘图准备，构造网格
+plt.figure()
+fig, axs = plt.subplots(2, 2, figsize=(10, 10))
+axs = axs.flatten()
+cmap = ListedColormap(['coral', 'royalblue'])
+
+# 开始求解 SVM
+for i in range(len(kernels)):
+    print('核函数：', ker_names[i])
+    alpha = SMO(x, y, kernels[i], C=C, max_iter=max_iter)
+    sup_idx = alpha > 1e-5 # 支持向量的系数不为零
+    sup_x = x[sup_idx] # 支持向量
+    sup_y = y[sup_idx]
+    sup_alpha = alpha[sup_idx]
+    
+    # 用支持向量计算 w^T*x
+    def wx(x_new):
+        s = 0
+        for xi, yi, ai in zip(sup_x, sup_y, sup_alpha):
+            s += yi * ai * kernels[i](xi, x_new)
+        return s
+    
+    # 计算b*
+    neg = [wx(xi) for xi in sup_x[sup_y == -1]]
+    pos = [wx(xi) for xi in sup_x[sup_y == 1]]
+    b = -0.5 * (np.max(neg) + np.min(pos))
+    
+    
