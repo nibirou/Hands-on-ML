@@ -24,3 +24,16 @@ split = int(len(m_x) * ratio)
 np.random.seed(0)
 idx = np.random.permutation(np.arange(len(m_x)))
 
+m_x = m_x[idx]
+m_y = m_y[idx]
+x_train, x_test = m_x[:split], m_x[split:]
+y_train, y_test = m_y[:split], m_y[split:]
+
+# 曼哈顿距离
+def distance(a, b):
+    return sum(abs(a - b))
+
+class KNN:
+    def __init__(self, k, label_num):
+        self.k = k
+        self.label_num = label_num # 类别的数量
