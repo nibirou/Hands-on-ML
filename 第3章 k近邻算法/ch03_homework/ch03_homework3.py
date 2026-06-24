@@ -9,7 +9,7 @@ import numpy as np
 import os
 
 m_x = np.loadtxt('./第3章 k近邻算法/mnist_x', delimiter=' ')
-m_y = np.loadtxt('mnist_y')
+m_y = np.loadtxt('./第3章 k近邻算法/mnist_y')
 
 # 数据集可视化
 data = np.reshape(np.array(m_x[0], dtype=int), [28, 28])
@@ -19,3 +19,8 @@ plt.imshow(data, cmap='gray')
 # 将数据集分为训练集和测试集
 ratio = 0.8
 split = int(len(m_x) * ratio)
+
+# 打乱数据
+np.random.seed(0)
+idx = np.random.permutation(np.arange(len(m_x)))
+
