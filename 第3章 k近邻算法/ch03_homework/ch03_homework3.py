@@ -52,8 +52,28 @@ class KNN:
         # 取最近的K个
         knn_indices = knn_indices[:self.k]
         return knn_indices
-    
+
     def get_label(self, x):
         # 对KNN方法的具体实现，观察K个近邻并使用np.argmax获取其中数量最多的类别
         knn_indices = self.get_knn_indices(x)
-        label_statistic = np.zeros()
+        label_statistic = np.zeros(shape=[self.label_num])
+        for index in knn_indices:
+            label = int(self.y_train[index])
+            label_statistic[label] += 1
+        # 从k个距离最近的样本中，返回数量最多的类别
+        return np.argmax(label_statistic)
+    
+    def predict(self, x_test):
+        # 预测样本 test_x 的类别
+        predicted_test_labels = np.zeros(shape=[len(x_test)], dtype=int)
+        for i, x in enumerate(x_test):
+            predicted_test_labels[i] = self.get_label(x)
+        return predicted_test_labels
+
+for k in range(1, 10):
+    knn = KNN(k, label_num=10)
+    knn.fit(x_train, y_train)
+    predicted_labels = knn.predict(x_test)
+    
+    accuracy = np.mean(predicted_labels == y_test)
+    print(f'K的取值为 {k}, 预测准确率为 {accuracy * 100:.2f}%')
