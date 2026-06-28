@@ -18,5 +18,10 @@
 // 辅助函数：读取特征数据 (m_x)
 std::vector<std::vector<int>> read_x(const std::string& filename) {
     std::ifstream file(filename);
+    if (!file.is_open()) {
+        std::cerr << "无法打开文件: " << filename << std::endl;
+        exit(1);
+    }
+    std::vector<std::vector<int>> data;
     
 }
