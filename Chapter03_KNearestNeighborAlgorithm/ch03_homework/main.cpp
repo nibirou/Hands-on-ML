@@ -10,7 +10,7 @@
 #include <filesystem> // 引入 filesystem 解决 Windows 中文路径问题
 
 #include <Eigen/Dense>
-#include <opencv2/opencv.hpp>
+// #include <opencv2/opencv.hpp>
 
 // 辅助函数：读取特征数据到 Eigen 矩阵
 // 参数改为 std::filesystem::path 以支持中文路径
@@ -116,26 +116,26 @@ public:
 int main() {
     std::cout << "正在加载数据..." << std::endl;
     // 使用 std::filesystem::path 处理包含中文的路径
-    std::filesystem::path x_path = "./第3章 k近邻算法/mnist_x";
-    std::filesystem::path y_path = "./第3章 k近邻算法/mnist_y";
+    std::filesystem::path x_path = "/workspace/Quant/Hands-on-ML/Chapter03_KNearestNeighborAlgorithm/mnist_x";
+    std::filesystem::path y_path = "/workspace/Quant/Hands-on-ML/Chapter03_KNearestNeighborAlgorithm/mnist_y";
 
     Eigen::MatrixXi m_x = read_x(x_path);
     Eigen::VectorXi m_y = read_y(y_path);
 
     // ================= 数据集可视化 =================
-    std::cout << "正在显示第一张图像 (按任意键关闭窗口)..." << std::endl;
-    Eigen::RowVectorXi first_img_vec = m_x.row(0);
+    // std::cout << "正在显示第一张图像 (按任意键关闭窗口)..." << std::endl;
+    // Eigen::RowVectorXi first_img_vec = m_x.row(0);
     
-    cv::Mat img(28, 28, CV_8UC1);
-    for (int i = 0; i < 28; ++i) {
-        for (int j = 0; j < 28; ++j) {
-            img.at<uchar>(i, j) = first_img_vec(i * 28 + j);
-        }
-    }
+    // cv::Mat img(28, 28, CV_8UC1);
+    // for (int i = 0; i < 28; ++i) {
+    //     for (int j = 0; j < 28; ++j) {
+    //         img.at<uchar>(i, j) = first_img_vec(i * 28 + j);
+    //     }
+    // }
     
-    cv::imshow("MNIST Sample (Press any key to close)", img);
-    cv::waitKey(0); 
-    cv::destroyAllWindows();
+    // cv::imshow("MNIST Sample (Press any key to close)", img);
+    // cv::waitKey(0); 
+    // cv::destroyAllWindows();
 
     std::cout << "正在划分和打乱数据集..." << std::endl;
     double ratio = 0.8;
