@@ -1,19 +1,11 @@
-// 不使用任何第三方库（如 Eigen），我们需要使用 C++ 标准库（STL）中的 std::vector 来手动实现矩阵和向量的数据结构及基本运算。
-// 以下是完全使用原生 C++ (Standard C++) 实现的代码。为了保证代码的可读性，定义了一些类型别名和基础的数学运算辅助函数。
-
 #include <iostream>
 #include <vector>
 #include <cmath>
 #include <iomanip>
 
-// 使用标准库 vector 定义矩阵和向量
-// using声明
 using Matrix = std::vector<std::vector<double>>;
 using Vector = std::vector<double>;
 
-// ==========================================
-// 基础数学运算辅助函数
-// ==========================================
 void printMatrix(const std::string& name, const Matrix& mat) {
     std::cout << name << ":\n";
     for (const auto& row : mat) {
@@ -24,7 +16,6 @@ void printMatrix(const std::string& name, const Matrix& mat) {
     }
 }
 
-// 打印向量
 void printVector(const std::string& name, const Vector& vec) {
     std::cout << name << ": [";
     for (size_t i = 0; i < vec.size(); ++i) {
@@ -33,7 +24,6 @@ void printVector(const std::string& name, const Vector& vec) {
     std::cout << "]\n";
 }
 
-// 矩阵乘法 (Matrix * Matrix)
 Matrix matMul(const Matrix& A, const Matrix& B) {
     int rowsA = A.size(), colsA = A[0].size(), colsB = B[0].size();
     Matrix C(rowsA, std::vector<double>(colsB, 0.0));
@@ -44,7 +34,6 @@ Matrix matMul(const Matrix& A, const Matrix& B) {
     return C;
 }
 
-// 矩阵乘向量 (Matrix * Vector)
 Vector matVecMul(const Matrix& A, const Vector& v) {
     int rows = A.size(), cols = A[0].size();
     Vector res(rows, 0.0);
@@ -54,30 +43,18 @@ Vector matVecMul(const Matrix& A, const Vector& v) {
     return res;
 }
 
-// 向量点乘/内积 (Vector · Vector) -> 返回标量
 double vecDot(const Vector& a, const Vector& b) {
     double res = 0.0;
     for (size_t i = 0; i < a.size(); ++i) res += a[i] * b[i];
     return res;
 }
 
-// 向量加法 (Vector + Vector)
 Vector vecAdd(const Vector& a, const Vector& b) {
     Vector res(a.size());
     for (size_t i = 0; i < a.size(); ++i) res[i] = a[i] + b[i];
     return res;
 }
 
-// 矩阵加法 (Matrix + Matrix)
-Matrix matAdd(const Matrix& A, const Matrix& B) {
-    Matrix res = A;
-    for (size_t i = 0; i < A.size(); ++i)
-        for (size_t j = 0; j < A[0].size(); ++j)
-            res[i][j] += B[i][j];
-    return res;
-}
-
-// 矩阵数乘/标量乘矩阵 (Scalar * Matrix) - 对应 NumPy 的广播机制
 Matrix matScale(double scalar, const Matrix& A) {
     Matrix res = A;
     for (size_t i = 0; i < A.size(); ++i)
@@ -86,7 +63,6 @@ Matrix matScale(double scalar, const Matrix& A) {
     return res;
 }
 
-// 判断两个矩阵是否相等 (考虑浮点数精度)
 bool isMatEqual(const Matrix& A, const Matrix& B, double eps = 1e-9) {
     if (A.size() != B.size() || A[0].size() != B[0].size()) return false;
     for (size_t i = 0; i < A.size(); ++i)
@@ -95,7 +71,6 @@ bool isMatEqual(const Matrix& A, const Matrix& B, double eps = 1e-9) {
     return true;
 }
 
-// 判断两个向量是否相等
 bool isVecEqual(const Vector& a, const Vector& b, double eps = 1e-9) {
     if (a.size() != b.size()) return false;
     for (size_t i = 0; i < a.size(); ++i)
@@ -108,17 +83,17 @@ int main() {
     // 选项A 两个对角矩阵之间相乘一定可交换
     // ==========================================
     std::cout << "--- 选项A ---" << std::endl;
-    // 构造 3x3 对角矩阵 D1 和 D2
+    
     Matrix D1 = {{1, 0, 0}, {0, 2, 0}, {0, 0, 3}};
     Matrix D2 = {{4, 0, 0}, {0, 5, 0}, {0, 0, 6}};
-
+    
     Matrix resA1 = matMul(D1, D2);
     Matrix resA2 = matMul(D2, D1);
-
+    
     printMatrix("D1 * D2", resA1);
     printMatrix("D2 * D1", resA2);
-
-    std::cout << "Are D1 * D2 and D2 * D1 equal? " << (isMatEqual(resA1, resA2) ? "True" : "False") <<
+    // 注意：下面这行必须完整复制，包含末尾的 << "\n\n";
+    std::cout << "Are D1 * D2 and D2 * D1 equal? " << (isMatEqual(resA1, resA2) ? "True" : "False") << "\n\n";
 
     // ==========================================
     // 选项B 矩阵与向量的乘法满足分配律
@@ -128,10 +103,8 @@ int main() {
     Matrix A = {{1, 2}, {3, 4}};
     Vector x = {2, 2};
     Vector y = {3, 3};
-
-    // 左边: A * (x + y)
+    
     Vector resB_left = matVecMul(A, vecAdd(x, y));
-    // 右边: A*x + A*y
     Vector resB_right = vecAdd(matVecMul(A, x), matVecMul(A, y));
     
     printVector("分配律左边 A*(x+y)", resB_left);
@@ -142,27 +115,18 @@ int main() {
     // 选项C 矩阵对向量的点乘满足结合律 (错误)
     // ==========================================
     std::cout << "--- 选项C ---" << std::endl;
-
+    
     Vector x_c = {1, 0};
     Vector y_c = {0, 1};
     
-    // 计算 x.dot(y) -> 标量
     double dot_xy = vecDot(x_c, y_c);
-    // product1: (A * x) · y -> 结果是 标量 (double)
     double product1 = vecDot(matVecMul(A, x_c), y_c); 
-    // product2: A * (x · y) -> 矩阵乘以标量 -> 结果是 矩阵 (Matrix)
     Matrix product2 = matScale(dot_xy, A); 
-
+    
     std::cout << "x.dot(y) (Scalar): " << dot_xy << "\n";
     std::cout << "Product 1 (A*x)·y (Scalar): " << product1 << "\n";
     printMatrix("Product 2 A*(x·y) (Matrix)", product2);
-    
-    // 在原生 C++ 中，double 和 Matrix 是截然不同的数据类型，编译器不允许直接比较。
-    // 这里直接说明它们类型和维度不匹配。
     std::cout << "Are they equal? False (Type & Dimension mismatch: Scalar vs Matrix)\n";
 
     return 0;
 }
-
-// 编译命令
-// g++ -std=c++11 ch02_homework2.cpp -o ch02_homework2.out
