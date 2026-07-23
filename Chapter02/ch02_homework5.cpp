@@ -68,3 +68,6 @@ int main() {
 
     return 0;
 }
+
+// 编译命令
+// g++ -std=c++11 ch02_homework5.cpp -o ch02_homework5.out
