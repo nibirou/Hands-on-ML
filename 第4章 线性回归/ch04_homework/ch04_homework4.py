@@ -121,4 +121,14 @@ plt.savefig('/workspace/Quant/Hands-on-ML/第4章 线性回归/ch04_homework/Los
 # &emsp;&emsp;下面我们画图看看不同起始参数位置和学习率对参数学习轨迹的影响。  
 # &emsp;&emsp;可以看到不同的初始参数位置、学习率会导致求得的“最优解”在不同的位置，同时迭代次数和速度也会有影响。
 # 学习率较大会更快收敛到最优解同时轨迹更加陡峭，学习率较小会收敛到局部最优并且轨迹比较平缓。
+X = np.array([0.1, 0.2, 0.3, 0.4, 0.5])
+Y = np.array([0.3, 0.35, 0.41, 0.48, 0.54])
 
+# 损失函数MSE
+def loss_function(theta, X, y):
+    predictions = theta[0] + theta[1] * X
+    return np.sum((predictions - y) ** 2) / (2 * len(X))
+
+# 梯度下降函数
+def gradient_descent(X, y, theta, learning_rate, iterations):
+    
