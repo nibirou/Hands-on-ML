@@ -205,7 +205,7 @@ vector<vector<int>> k_fold_indices(int n_samples, int n_splits) {
 // ================= 6. 主函数 =================
 
 int main() {
-    string filename = "./Chapter05/USA_Housing.csv";
+    string filename = "/workspace/Quant/Hands-on-ML/Chapter05/USA_Housing.csv";
     ifstream file(filename);
     if (!file.is_open()) {
         cerr << "无法打开文件，请检查路径。" << endl;
@@ -328,3 +328,5 @@ int main() {
 
     return 0;
 }
+
+// g++ -std=c++11 ch05_homework7.cpp -o ch05_homework7.out

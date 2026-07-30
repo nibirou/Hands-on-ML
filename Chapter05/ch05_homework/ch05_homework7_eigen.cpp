@@ -21,7 +21,8 @@ MatrixXd add_intercept(const MatrixXd& X) {
 // 训练线性回归模型 (使用 QR 分解求解最小二乘法，数值比直接求逆矩阵更稳定)
 VectorXd train_linreg(const MatrixXd& X, const VectorXd& y) {
     MatrixXd X_b = add_intercept(X);
-    return X_b.colPivHouseHolderQr().solve(y);
+    // 修复 1: 修正拼写错误，H 应为小写 h
+    return X_b.colPivHouseholderQr().solve(y);
 }
 
 // 计算均方误差 (MSE)
@@ -32,10 +33,12 @@ double calc_mse(const MatrixXd& X, const VectorXd& y, const VectorXd& w) {
 }
 
 int main() {
-    // 1. 从源文件加载数据
-    ifstream file("D:/Download/USA_Housing.csv");
+    // ⚠️ 修复 4: 请将此路径修改为你 Linux 容器中 CSV 文件的实际路径
+    // 如果文件在当前目录，直接使用文件名即可
+    string file_path = "/workspace/Quant/Hands-on-ML/Chapter05/USA_Housing.csv"; 
+    ifstream file(file_path);
     if (!file.is_open()) {
-        cerr << "无法打开文件，请检查路径！" << endl;
+        cerr << "无法打开文件，请检查路径: " << file_path << endl;
         return -1;
     }
 
@@ -48,7 +51,6 @@ int main() {
         stringstream ss(line);
         string val;
         while (getline(ss, val, ',')) {
-            // 清理可能的 Windows 回车符 \r
             if (!val.empty() && val.back() == '\r') val.pop_back();
             header.push_back(val);
         }
@@ -99,15 +101,22 @@ int main() {
 
     // 3. 数据归一化 (StandardScaler)
     RowVectorXd mean = data.colwise().mean();
-    // 计算标准差 (sklearn 默认使用 ddof=0，即除以 N)
+    // 计算方差 (sklearn 默认使用 ddof=0，即除以 N)
     RowVectorXd var = (data.rowwise() - mean).array().square().colwise().mean();
-    RowVectorXd stddev = var.sqrt();
+    
+    // 修复 2: 使用 cwiseSqrt() 进行逐元素平方根计算，而不是矩阵平方根 sqrt()
+    RowVectorXd stddev = var.cwiseSqrt();
     
     // 防止除以 0
     for (int i = 0; i < stddev.size(); ++i) {
         if (stddev(i) == 0) stddev(i) = 1.0;
     }
-    MatrixXd data_scaled = (data.rowwise() - mean).array().rowwise() / stddev;
+    
+    // 修复 3 (核心): 分两步进行，避免复杂的模板推导报错
+    // 第一步：矩阵减去均值 (返回 Matrix 表达式)
+    MatrixXd data_centered = data.rowwise() - mean;
+    // 第二步：转换为 .array() 后，再进行 rowwise 的逐元素向量除法
+    MatrixXd data_scaled = data_centered.array().rowwise() / stddev.array();
 
     // 划分输入和标签
     MatrixXd X = data_scaled.leftCols(cols - 1);
@@ -124,7 +133,7 @@ int main() {
     }
 
     vector<double> mse_scores;
-    cout << "各模型的均方误差：";
+    cout << "各折的均方误差：";
     for (int i = 0; i < k; ++i) {
         int test_start = folds[i].first;
         int test_end = folds[i].second;
@@ -141,7 +150,7 @@ int main() {
 
         MatrixXd X_train_cv(train_indices.size(), cols - 1);
         VectorXd y_train_cv(train_indices.size());
-        for (int idx = 0; idx < train_indices.size(); ++idx) {
+        for (size_t idx = 0; idx < train_indices.size(); ++idx) {
             X_train_cv.row(idx) = X.row(train_indices[idx]);
             y_train_cv(idx) = y(train_indices[idx]);
         }
@@ -161,7 +170,7 @@ int main() {
     }
     cout << "\n";
 
-    // 找到最小的 MSE (对应 Python 中的负 MSE 取 max)
+    // 找到最小的 MSE 
     double best_cv_mse = *min_element(mse_scores.begin(), mse_scores.end());
     cout << "最佳模型的均方误差：" << best_cv_mse << "\n\n";
 
@@ -186,3 +195,5 @@ int main() {
 
     return 0;
 }
+// g++ -std=c++11 -O3 -I /usr/include/eigen3 ch05_homework7_eigen.cpp -o ch05_homework7_eigen.out
+// ./ch05_homework7_eigen.out
