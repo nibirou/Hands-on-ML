@@ -87,7 +87,7 @@ struct StandardScaler {
 };
 
 // ================= 3. 线性代数求解器 (高斯消元法) =================
-
+// 通过系数矩阵与增广矩阵求解线性方程组
 vector<double> solve_linear_system(vector<vector<double>> A, vector<double> b) {
     int n = A.size();
     for (int i = 0; i < n; ++i) {
